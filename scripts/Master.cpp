@@ -156,12 +156,53 @@ int Master::Run()
             return 1;
         }
 
-        sLog->outString("WorldServer Proces PID: %u\n", pid);
+        sLog->outString("WorldServer Proces ID: %u\n", pid);
     }
 
     ///- Start the databases
     if (!_StartDB())
         return 1;
+
+	bool nametrue = false;
+	bool adresstrue = false;
+
+	PreparedStatement *stmt = LoginDatabase.GetPreparedStatement(LOGIN_GET_REALMLIST);
+    PreparedQueryResult result = LoginDatabase.Query(stmt);
+    if (result)
+    {
+        do
+        {
+			std::string alive[2];
+			// Not needet yet !!
+			//alive[0] = "Norganon PVE/P";
+			//alive[1] = "178.63.89.20";
+
+			alive[0] = "ALiveCoreRC2";
+			alive[1] = "soe-login.no-ip.info";
+
+            Field *fields = result->Fetch();
+            const std::string& name = fields[1].GetCString();
+            const std::string& address = fields[2].GetCString();
+
+			sLog->outString(" ");
+            sLog->outString("Testing Realm: %s", name);
+			sLog->outString(" ");
+
+			if (name == alive[0] && address == alive[1])
+			{
+				nametrue = true;
+				adresstrue = true;
+				break;
+			}
+		}
+		while (result->NextRow());
+    }
+
+	if (!nametrue || !adresstrue)
+	{
+		sLog->outString("No authorized ALive Realm found!\n");
+		exit(0);
+	}
 
     // set server offline (not connectable)
     LoginDatabase.DirectPExecute("UPDATE realmlist SET color = (color & ~%u) | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, REALM_FLAG_INVALID, realmID);
